@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container my-4">
+    <h2 class="mb-4 text-center">Admin Dashboard</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Total Spots</h5>
+                    <p class="card-text fs-4">{{ total_spots }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-danger mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Occupied Spots</h5>
+                    <p class="card-text fs-4">{{ occupied_spots }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Available Spots</h5>
+                    <p class="card-text fs-4">{{ available_spots }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Parking Lots</h3>
+        <a href="{{ url_for('admin.create_lot') }}" class="btn btn-success">+ Create New Lot</a>
+    </div>
+
+    {% if lots %}
+    <ul class="list-group mb-4">
+        {% for lot in lots %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ lot.prime_location_name }}</strong> ({{ lot.maximum_spots }} spots)
+            </div>
+            <div>
+                <a href="{{ url_for('admin.view_lot', lot_id=lot.id) }}" class="btn btn-sm btn-primary">View</a>
+                <a href="{{ url_for('admin.edit_lot', lot_id=lot.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                <a href="{{ url_for('admin.delete_lot', lot_id=lot.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No parking lots available.</p>
+    {% endif %}
+
+    <h3>Registered Users</h3>
+    {% if users %}
+    <ul class="list-group mb-4">
+        {% for user in users %}
+        <li class="list-group-item">{{ user.name }} — {{ user.email }}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No users registered yet.</p>
+    {% endif %}
+
+    <h3>Recent Active Reservations</h3>
+    {% if recent_reservations %}
+    <ul class="list-group mb-5">
+        {% for res in recent_reservations %}
+        <li class="list-group-item">
+            User {{ res.user_id }}
+            {% if res.spot and res.spot.lot %}
+                — Lot {{ res.spot.lot.prime_location_name }} — Spot #{{ res.spot.spot_number }}
+            {% else %}
+                — <em>Data missing</em>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No active reservations at the moment.</p>
+    {% endif %}
+</div>
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Overall Occupancy (Pie Chart)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="pieChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Lot-wise Occupancy (Bar Chart)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="barChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// Pie Chart
+const pieCtx = document.getElementById('pieChart').getContext('2d');
+new Chart(pieCtx, {
+    type: 'pie',
+    data: {
+        labels: ['Available', 'Occupied'],
+        datasets: [{
+            data: [{{ available_spots }}, {{ occupied_spots }}],
+            backgroundColor: ['#28a745', '#dc3545']
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Total Spots: {{ total_spots }}'
+            }
+        }
+    }
+});
+
+// Bar Chart
+const barCtx = document.getElementById('barChart').getContext('2d');
+new Chart(barCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for lot in lots %}'{{ lot.prime_location_name }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [
+            {
+                label: 'Available',
+                data: [{% for lot in lots %}{{ lot.available_spots }}{% if not loop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#28a745'
+            },
+            {
+                label: 'Occupied',
+                data: [{% for lot in lots %}{{ lot.occupied_spots }}{% if not loop.last %},{% endif %}{% endfor %}],
+                backgroundColor: '#dc3545'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            x: { stacked: true },
+            y: { stacked: true, beginAtZero: true }
+        }
+    }
+});
+</script>
+{% endblock %}
+
+<!-- yeh bhi zruri h above is imported from website>

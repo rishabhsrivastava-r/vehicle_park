@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="text-center mb-4">Welcome, {{ user.username }}</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endwith %}
+
+    <!-- Chart Section with Fixed Container -->
+    <div class="card shadow mb-5">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0 text-center"><i class="fas fa-chart-pie"></i> Current Parking Availability</h4>
+        </div>
+        <div class="card-body chart-card-body">
+            <div class="chart-container">
+                <canvas id="userOccupancyChart"></canvas>
+            </div>
+            <div class="text-center" style="height: 60px; overflow: hidden;">
+                <div class="row">
+                    <div class="col-6">
+                        <h5 class="text-success">{{ occupancy_summary.available_spots if occupancy_summary else 0 }}</h5>
+                        <small class="text-muted">Available Spots</small>
+                    </div>
+                    <div class="col-6">
+                        <h5 class="text-danger">{{ occupancy_summary.occupied_spots if occupancy_summary else 0 }}</h5>
+                        <small class="text-muted">Occupied Spots</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Book a Spot -->
+    <div class="card shadow mb-5">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Book a Spot</h4>
+        </div>
+        <div class="card-body">
+            {% if lots %}
+                {% for lot in lots %}
+                    <div class="border rounded p-3 mb-3">
+                        <h5>{{ lot.prime_location_name }}</h5>
+                        <p>₹{{ lot.price_per_hour }} per hour</p>
+                        <form method="POST" action="{{ url_for('user.book_spot', lot_id=lot.id) }}" class="row g-2 align-items-center">
+                            <div class="col-md-6">
+                                <input type="text" name="vehicle_number" class="form-control" placeholder="Enter Vehicle Number" required>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-success w-100">Book Spot</button>
+                            </div>
+                        </form>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No parking lots available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Active Reservations -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">Active Reservations</h4>
+        </div>
+        <div class="card-body">
+            {% if active_reservations %}
+                <ul class="list-group">
+                    {% for res in active_reservations %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ res.spot.lot.prime_location_name }}</strong> - Spot #{{ res.spot.spot_number }}<br>
+                                Vehicle: {{ res.vehicle_number }}
+                            </div>
+                            <a href="{{ url_for('user.release_spot', reservation_id=res.id) }}" class="btn btn-outline-danger btn-sm">Release</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No active reservations.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Completed Reservations -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="mb-0">Completed Reservations</h4>
+        </div>
+        <div class="card-body">
+            {% if completed_reservations %}
+                <ul class="list-group">
+                    {% for res in completed_reservations %}
+                        <li class="list-group-item">
+                            <strong>{{ res.spot.lot.prime_location_name }}</strong> - Spot #{{ res.spot.spot_number }}<br>
+                            ₹{{ res.parking_cost }} - {{ res.parking_timestamp.strftime('%Y-%m-%d') }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No completed reservations.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Fixed Chart Implementation to Prevent Scrolling Issues
+try {
+    const userChartCtx = document.getElementById('userOccupancyChart');
+    if (userChartCtx) {
+        const availableSpots = {{ occupancy_summary.available_spots if occupancy_summary else 0 }};
+        const occupiedSpots = {{ occupancy_summary.occupied_spots if occupancy_summary else 0 }};
+        const totalSpots = {{ occupancy_summary.total_spots if occupancy_summary else 0 }};
+        
+        new Chart(userChartCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Available Spots', 'Occupied Spots'],
+                datasets: [{
+                    data: [availableSpots, occupiedSpots],
+                    backgroundColor: ['#28a745', '#dc3545'],
+                    borderWidth: 3,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false
+                },
+                layout: {
+                    padding: 0
+                },
+                animation: {
+                    duration: 0 // Disable animations to prevent movement
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Total Parking Spots: ' + totalSpots,
+                        font: {
+                            size: 16
+                        }
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        console.log('User pie chart created successfully');
+    } else {
+        console.error('Canvas element for user chart not found');
+    }
+} catch (error) {
+    console.error('Error creating user pie chart:', error);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="card shadow">
+        <div class="card-body">
+            <h2 class="card-title">{{ lot.prime_location_name }}</h2>
+            <p class="card-text"><strong>Address:</strong> {{ lot.address }}</p>
+            <p class="card-text"><strong>Pincode:</strong> {{ lot.pincode }}</p>
+            <p class="card-text"><strong>Price per Hour:</strong> ₹{{ lot.price_per_hour }}</p>
+            <p class="card-text"><strong>Total Spots:</strong> {{ lot.maximum_spots }}</p>
+        </div>
+    </div>
+
+    <div class="mt-5">
+        <h3>Spots</h3>
+        <ul class="list-group">
+            {% for spot in spots %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Spot #{{ spot.spot_number }}
+                    {% if spot.id in active_reservations %}
+                        <span class="badge bg-danger">Reserved (User ID: {{ active_reservations[spot.id].user_id }})</span>
+                    {% else %}
+                        <span class="badge bg-success">Available</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
