@@ -1,5 +1,5 @@
 # Vehicle Parking Management System
-                             Live Demo    https://vehicle-park-nanj.onrender.com/
+                          
 ## Introduction
 A Flask-based web application for efficient parking management with real-time occupancy tracking, automated billing, and data visualization for both administrators and users.
 
